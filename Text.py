@@ -220,7 +220,7 @@ def simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,bo
     if itt < 4000:
         times_av[key].append(itt)
         ppp=Halt(coalitions, num_agents)[1]
-        q_dis[key].append(calculate_avg_l1_distance(ppp))
+        q_dis[key].append(calculate_avg_distance(ppp))
 
 def run_simulation(num_agents, sigma, times_av, q_dis,num):
     for booli in [False, True]:
