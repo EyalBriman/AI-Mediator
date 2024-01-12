@@ -203,7 +203,7 @@ if __name__ == "__main__":
     q_dis = {}
     for sigma in range (0,41,10):
         for num_agents in range(10, 41, 10):
-            for num in range(1,21):
+            for num in range(1,51):
                 run_simulation(num_agents, sigma, times_av, q_dis,num)
             
             
