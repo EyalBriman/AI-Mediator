@@ -237,7 +237,7 @@ def run_simulation(num_agents, sigma, times_av, q_dis,num):
                     coalitions = initialize_coalitions(agents)
                     simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,booli, alpha,dis,sigma,status_quo)
 
-def calculate_avg_l1_distance(coalition):
+def calculate_avg_distance(coalition):
     proposal = coalition['proposal']
     distances = []
     for agent in coalition['agents']:
