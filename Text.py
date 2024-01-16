@@ -9,6 +9,7 @@ from absl import logging
 import tensorflow as tf
 import tensorflow_hub as hub
 import matplotlib.pyplot as plt
+from scipy.stats import truncnorm
 import numpy as np
 import os
 import pandas as pd
@@ -31,7 +32,7 @@ def outputTreat(text):
 
 def LLM(prompt,system_message):
     client = OpenAI(
-        api_key="your key"
+        api_key="#############################################"
     )
 
     open_ai_payload = {
@@ -56,19 +57,26 @@ def embed(input):
 
 def combined_dist(vector1, vector2):
     similarity = np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
-    return 1-similarity
+    return similarity
 
-def approve_proposal(sigma,proposal,ideal,status_quo):
-    approval=0
-    if sigma>0:
-        norm_dist = norm(scale=sigma)
-        cdf_value = norm_dist.cdf(combined_dist(proposal, ideal))
+def approve_proposal(sigma, proposal, ideal, status_quo):
+    approval = 0
+    if sigma > 0:
+        lower_bound = -1  # Lower bound for truncated normal distribution
+        upper_bound = 1  # Upper bound for truncated normal distribution
+
+        a = (lower_bound - 1) / sigma
+        b = (upper_bound - 1) / sigma
+
+        truncated_dist = truncnorm(a, b, loc=1, scale=sigma)
+        cdf_value = truncated_dist.cdf(combined_dist(proposal, ideal))
+        
         random_number = random.random()
-        if random_number<=cdf_value:
-            approval=1
+        if random_number <= cdf_value:
+            approval = 1
     else:
-        if combined_dist(proposal, ideal)<=combined_dist(status_quo, ideal):
-            approval=1
+        if combined_dist(proposal, ideal) > combined_dist(status_quo, ideal):
+            approval = 1
     return approval
 
 
@@ -195,8 +203,6 @@ def coalition_formation(coalitions, dis, booli,alpha,num_agents,status_quo):
 
     return [coalition for coalition in filtered_coalitions if len(coalition['agents']) > 0]
 
-
-
 def Halt(coalitions,num_agents):
     coalitionBig=coalitions[0]
     flag = False
@@ -220,24 +226,23 @@ def simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,bo
     if itt < 4000:
         times_av[key].append(itt)
         ppp=Halt(coalitions, num_agents)[1]
-        q_dis[key].append(calculate_avg_distance(ppp))
+        q_dis[key].append(calculate_avg_l1_distance(ppp))
 
 def run_simulation(num_agents, sigma, times_av, q_dis,num):
     for booli in [False, True]:
         for alpha in [0,0.33,0.67,1]:
             for dis in [False, True]:
+                key = (num_agents, booli, alpha,sigma,dis)
                 sen=['There is no sentence since the coalition formation has not started yet','There is no sentence since the coalition formation has not started yet']
                 status_quo=embed(sen)[0]
-                key = (num_agents, booli, alpha,sigma,dis)
-                if key not in list(tt.keys()):
-                    if num==1:  
-                        times_av[key] = []
-                        q_dis[key]=[]
-                    agents = create_agents(num_agents,sigma)
-                    coalitions = initialize_coalitions(agents)
-                    simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,booli, alpha,dis,sigma,status_quo)
+                if num==1:  
+                    times_av[key] = []
+                    q_dis[key]=[]
+                agents = create_agents(num_agents,sigma)
+                coalitions = initialize_coalitions(agents)
+                simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,booli, alpha,dis,sigma,status_quo)
 
-def calculate_avg_distance(coalition):
+def calculate_avg_l1_distance(coalition):
     proposal = coalition['proposal']
     distances = []
     for agent in coalition['agents']:
@@ -253,9 +258,8 @@ if __name__ == "__main__":
     times_av = {}
     q_dis = {}
     coalition_maj=[]
-    for sigma in [0,0.005,0.5]:
-        q_dis[sigma]=[]
-        for num_agents in range(10, 31, 10):
+    for sigma in [0,0.1,0.3,0.5]:
+        for num_agents in [10,20,30,40]:
             for num in range(1,11):
                 run_simulation(num_agents, sigma, times_av, q_dis,num)
 
