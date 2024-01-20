@@ -32,7 +32,7 @@ def outputTreat(text):
 
 def LLM(prompt,system_message):
     client = OpenAI(
-        api_key="#############################################"
+        api_key="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"
     )
 
     open_ai_payload = {
@@ -71,7 +71,7 @@ def approve_proposal(sigma, proposal, ideal, status_quo):
         truncated_dist = truncnorm(a, b, loc=1, scale=sigma)
         cdf_value = truncated_dist.cdf(combined_dist(proposal, ideal))
         
-        random_number = random.random()
+        random_number = random.uniform(0, 0.5)
         if random_number <= cdf_value:
             approval = 1
     else:
@@ -212,35 +212,50 @@ def Halt(coalitions,num_agents):
             coalitionBig=coalition
     return [flag,coalitionBig]
 
-def simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,booli, alpha,dis,sigma,status_quo):
+def simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents, booli, alpha, dis, sigma, status_quo):
     itt = 0
-    while not Halt(coalitions, num_agents)[0] and itt <4000:
-        n_coalitions=coalition_formation(coalitions, dis, booli,alpha,num_agents,status_quo)
-        coalitions=n_coalitions
+    while not Halt(coalitions, num_agents)[0] and itt < 4000:
+        n_coalitions = coalition_formation(coalitions, dis, booli, alpha, num_agents, status_quo)
+        coalitions = n_coalitions
         itt += 1
         if itt >= 4000:
             times_av[key].append('no')
             q_dis[key].append('no')
             break
-            
+
     if itt < 4000:
         times_av[key].append(itt)
-        ppp=Halt(coalitions, num_agents)[1]
+        ppp = Halt(coalitions, num_agents)[1]
         q_dis[key].append(calculate_avg_l1_distance(ppp))
 
-def run_simulation(num_agents, sigma, times_av, q_dis,num):
+def run_simulation(num_agents, sigma, times_av, q_dis, num):
     for booli in [False, True]:
-        for alpha in [0,0.33,0.67,1]:
+        for alpha in [0, 0.33, 0.67, 1]:
             for dis in [False, True]:
-                key = (num_agents, booli, alpha,sigma,dis)
-                sen=['There is no sentence since the coalition formation has not started yet','There is no sentence since the coalition formation has not started yet']
-                status_quo=embed(sen)[0]
-                if num==1:  
+                key = (num_agents, booli, alpha, sigma, dis)
+                sen = ['There is no sentence since the coalition formation has not started yet',
+                        'There is no sentence since the coalition formation has not started yet']
+                status_quo = embed(sen)[0]
+                if num == 1:
                     times_av[key] = []
-                    q_dis[key]=[]
-                agents = create_agents(num_agents,sigma)
+                    q_dis[key] = []
+
+                agents = create_agents(num_agents, sigma)
                 coalitions = initialize_coalitions(agents)
-                simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,booli, alpha,dis,sigma,status_quo)
+                while True:
+                    try:
+                        simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents, booli, alpha, dis,sigma, status_quo)
+                        break  # Break the loop if successful
+                    except Exception as e:
+                        print(f"Retry due to error: {e}")
+
+def run_with_retry(num_agents, sigma, times_av, q_dis, num):
+    while True:
+        try:
+            run_simulation(num_agents, sigma, times_av, q_dis, num)
+            break  # Break the loop if successful
+        except Exception as e:
+            print(f"Retry due to error: {e}")
 
 def calculate_avg_l1_distance(coalition):
     proposal = coalition['proposal']
@@ -258,8 +273,7 @@ if __name__ == "__main__":
     times_av = {}
     q_dis = {}
     coalition_maj=[]
-    for sigma in [0,0.1,0.3,0.5]:
+    for sigma in [0,0.7,0.8,1]:
         for num_agents in [10,20,30,40]:
             for num in range(1,11):
-                run_simulation(num_agents, sigma, times_av, q_dis,num)
-
+                run_with_retry(num_agents, sigma, times_av, q_dis, num)
