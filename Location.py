@@ -9,7 +9,7 @@ import time
 
 def l1_distance(point1x, point2x,point1y, point2y):
     distance = abs(point1x - point2x) + abs(point1y - point2y)
-    return distance
+    return (distance/200)
 
 def generate_location_ideal():
     x=0
@@ -32,14 +32,13 @@ def generate_initial_location(agent_loc):
 
 def approve_proposal(sigma,proposal,ideal):
     approval=0
-    if sigma>0:
+    if l1_distance(proposal[0],ideal[0],proposal[1],ideal[1])<=l1_distance(0,ideal[0],0,ideal[1]):
+        approval=1
+    elif  l1_distance(proposal[0],ideal[0],proposal[1],ideal[1])>l1_distance(0,ideal[0],0,ideal[1]) and sigma>0:
         halfnorm_dist = halfnorm(scale=sigma)
-        cdf_value = halfnorm_dist.cdf(l1_distance(proposal[0],ideal[0],proposal[1],ideal[1]))
-        random_number = random.random()
-        if random_number<=cdf_value:
-            approval=1
-    else:
-        if l1_distance(proposal[0],ideal[0],proposal[1],ideal[1])<=l1_distance(0,ideal[0],0,ideal[1]):
+        pdf_value = halfnorm_dist.pdf(l1_distance(proposal[0],ideal[0],proposal[1],ideal[1]))
+        random_number = random.uniform(0, 1)
+        if random_number<=pdf_value:
             approval=1
     return approval
 
@@ -54,11 +53,14 @@ def create_agents(num_agents,sigma):
         agents.append(agent)
     return agents
                                                          
-def initialize_coalitions(agents):
+def initialize_coalitions(agents,noise):
     coalitions = []
     for i, agent in enumerate(agents):
         attribute = {}
-        attribute['proposal'] = generate_initial_location(agent['ideal_location'])
+        if noise:
+            attribute['proposal'] = agent['ideal_location']
+        else:
+            attribute['proposal']=generate_initial_location(agent['ideal_location'])
         attribute['agents'] = []
         attribute['agents'].append(agent)
         coalitions.append(attribute)
@@ -178,13 +180,14 @@ def run_simulation(num_agents, sigma, times_av, q_dis,num):
     for booli in [False, True]:
         for alpha in [0,0.25,0.5,0.75,1]:
             for dis in [False, True]:
-                key = (num_agents, booli, alpha,sigma,dis)
-                if num==1:  
-                    times_av[key] = []
-                    q_dis[key]=[]
-                agents = create_agents(num_agents,sigma)
-                coalitions = initialize_coalitions(agents)
-                simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,booli, alpha,dis,sigma)
+                for noise in [True,False]:
+                    key = (num_agents, booli, alpha,sigma,dis,noise)
+                    if num==1:  
+                        times_av[key] = []
+                        q_dis[key]=[]
+                    agents = create_agents(num_agents,sigma)
+                    coalitions = initialize_coalitions(agents,noise)
+                    simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,booli, alpha,dis,sigma)
 
 def calculate_avg_l1_distance(coalition):
     proposal = coalition['proposal']
@@ -201,9 +204,9 @@ def calculate_avg_l1_distance(coalition):
 if __name__ == "__main__":
     times_av = {}
     q_dis = {}
-    for sigma in range (0,41,10):
+    for sigma in [0,1,1.5,2]:
         for num_agents in range(10, 41, 10):
-            for num in range(1,51):
+            for num in range(1,101):
                 run_simulation(num_agents, sigma, times_av, q_dis,num)
             
             
