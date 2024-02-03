@@ -32,7 +32,7 @@ def outputTreat(text):
 
 def LLM(prompt,system_message):
     client = OpenAI(
-        api_key="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"
+        api_key="########################" #add an openai key
     )
 
     open_ai_payload = {
@@ -57,25 +57,22 @@ def embed(input):
 
 def combined_dist(vector1, vector2):
     similarity = np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
-    return similarity
+    return (similarity)
+
 
 def approve_proposal(sigma, proposal, ideal, status_quo):
     approval = 0
-    if sigma > 0:
-        lower_bound = -1  # Lower bound for truncated normal distribution
-        upper_bound = 1  # Upper bound for truncated normal distribution
-
+    if combined_dist(proposal, ideal) >= combined_dist(status_quo, ideal):
+        approval = 1
+    elif combined_dist(proposal, ideal) < combined_dist(status_quo, ideal) and sigma > 0:
+        lower_bound = -1  
+        upper_bound = 1 
         a = (lower_bound - 1) / sigma
         b = (upper_bound - 1) / sigma
-
         truncated_dist = truncnorm(a, b, loc=1, scale=sigma)
-        cdf_value = truncated_dist.cdf(combined_dist(proposal, ideal))
-        
-        random_number = random.uniform(0, 0.5)
-        if random_number <= cdf_value:
-            approval = 1
-    else:
-        if combined_dist(proposal, ideal) > combined_dist(status_quo, ideal):
+        pdf_value = truncated_dist.pdf(combined_dist(proposal, ideal))
+        random_number = random.uniform(0,1)
+        if random_number <= pdf_value:
             approval = 1
     return approval
 
@@ -214,16 +211,16 @@ def Halt(coalitions,num_agents):
 
 def simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents, booli, alpha, dis, sigma, status_quo):
     itt = 0
-    while not Halt(coalitions, num_agents)[0] and itt < 4000:
+    while not Halt(coalitions, num_agents)[0] and itt < 1000:
         n_coalitions = coalition_formation(coalitions, dis, booli, alpha, num_agents, status_quo)
         coalitions = n_coalitions
         itt += 1
-        if itt >= 4000:
+        if itt >= 1000:
             times_av[key].append('no')
             q_dis[key].append('no')
             break
 
-    if itt < 4000:
+    if itt < 1000:
         times_av[key].append(itt)
         ppp = Halt(coalitions, num_agents)[1]
         q_dis[key].append(calculate_avg_l1_distance(ppp))
@@ -233,21 +230,22 @@ def run_simulation(num_agents, sigma, times_av, q_dis, num):
         for alpha in [0, 0.33, 0.67, 1]:
             for dis in [False, True]:
                 key = (num_agents, booli, alpha, sigma, dis)
-                sen = ['There is no sentence since the coalition formation has not started yet',
-                        'There is no sentence since the coalition formation has not started yet']
-                status_quo = embed(sen)[0]
-                if num == 1:
-                    times_av[key] = []
-                    q_dis[key] = []
+                if key not in list(t.keys()):
+                    sen = ['There is no sentence since the coalition formation has not started yet',
+                            'There is no sentence since the coalition formation has not started yet']
+                    status_quo = embed(sen)[0]
+                    if num == 1:
+                        times_av[key] = []
+                        q_dis[key] = []
 
-                agents = create_agents(num_agents, sigma)
-                coalitions = initialize_coalitions(agents)
-                while True:
-                    try:
-                        simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents, booli, alpha, dis,sigma, status_quo)
-                        break  # Break the loop if successful
-                    except Exception as e:
-                        print(f"Retry due to error: {e}")
+                    agents = create_agents(num_agents, sigma)
+                    coalitions = initialize_coalitions(agents)
+                    while True:
+                        try:
+                            simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents, booli, alpha, dis,sigma, status_quo)
+                            break  # Break the loop if successful
+                        except Exception as e:
+                            print(f"Retry due to error: {e}")
 
 def run_with_retry(num_agents, sigma, times_av, q_dis, num):
     while True:
@@ -272,8 +270,7 @@ def calculate_avg_l1_distance(coalition):
 if __name__ == "__main__":
     times_av = {}
     q_dis = {}
-    coalition_maj=[]
-    for sigma in [0,0.7,0.8,1]:
+    for sigma in [0,1,1.5,2]:
         for num_agents in [10,20,30,40]:
             for num in range(1,11):
                 run_with_retry(num_agents, sigma, times_av, q_dis, num)
