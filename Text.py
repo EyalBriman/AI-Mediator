@@ -32,7 +32,7 @@ def outputTreat(text):
 
 def LLM(prompt,system_message):
     client = OpenAI(
-        api_key="########################" #add an openai key
+        api_key="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"
     )
 
     open_ai_payload = {
@@ -57,16 +57,17 @@ def embed(input):
 
 def combined_dist(vector1, vector2):
     similarity = np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))
-    return (similarity)
+    return math.sqrt(2-2*similarity)
+
 
 
 def approve_proposal(sigma, proposal, ideal, status_quo):
     approval = 0
-    if combined_dist(proposal, ideal) >= combined_dist(status_quo, ideal):
+    if combined_dist(proposal, ideal) < combined_dist(status_quo, ideal):
         approval = 1
-    elif combined_dist(proposal, ideal) < combined_dist(status_quo, ideal) and sigma > 0:
-        lower_bound = -1  
-        upper_bound = 1 
+    elif combined_dist(proposal, ideal) >= combined_dist(status_quo, ideal) and sigma > 0:
+        lower_bound = 0  
+        upper_bound = 2 
         a = (lower_bound - 1) / sigma
         b = (upper_bound - 1) / sigma
         truncated_dist = truncnorm(a, b, loc=1, scale=sigma)
