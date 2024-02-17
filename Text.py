@@ -32,7 +32,7 @@ def outputTreat(text):
 
 def LLM(prompt,system_message):
     client = OpenAI(
-        api_key="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"
+        api_key="##################################"
     )
 
     open_ai_payload = {
