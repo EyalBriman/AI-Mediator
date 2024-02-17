@@ -83,10 +83,7 @@ def coalition_prop(coalitions, num_agents, alpha, booli):
     cols = []
     for i in range(len(coalitions)):
         dist = l1_distance(coalitions[i]['proposal'][0], x_sum, coalitions[i]['proposal'][1], y_sum)
-        if booli:
-            prob = 1 / (1 + alpha * dist)
-        else:
-            prob = 1 + alpha * dist
+        prob=(1 + alpha * dist)**(booli)
         cols.append({i: prob})
     total_prob_sum = sum(list(col.values())[0] for col in cols)
     normalized_probs = [{list(col.keys())[0]: list(col.values())[0] / total_prob_sum} for col in cols]
@@ -177,17 +174,18 @@ def simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,bo
         q_dis[key].append(calculate_avg_l1_distance(Halt(coalitions, num_agents)[1]))
 
 def run_simulation(num_agents, sigma, times_av, q_dis,num):
-    for booli in [False, True]:
+    for t in [-1, 1]:
         for alpha in [0,0.25,0.5,0.75,1]:
-            for dis in [False, True]:
-                for noise in [True,False]:
-                    key = (num_agents, booli, alpha,sigma,dis,noise)
+            for C in [False, True]:
+                for I in [True,False]:
+                    n=num_agents
+                    key = (n, t, alpha,sigma,C,I)
                     if num==1:  
                         times_av[key] = []
                         q_dis[key]=[]
-                    agents = create_agents(num_agents,sigma)
-                    coalitions = initialize_coalitions(agents,noise)
-                    simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,booli, alpha,dis,sigma)
+                    agents = create_agents(n,sigma)
+                    coalitions = initialize_coalitions(agents,I)
+                    simulate_coalition_formation(times_av, q_dis, coalitions, key, n,t, alpha,C,sigma)
 
 def calculate_avg_l1_distance(coalition):
     proposal = coalition['proposal']
