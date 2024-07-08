@@ -7,9 +7,9 @@ from scipy.stats import halfnorm
 from scipy.stats import multivariate_normal
 import time
 
-def l1_distance(point1x, point2x,point1y, point2y):
-    distance = abs(point1x - point2x) + abs(point1y - point2y)
-    return (distance)
+def l2_distance(point1x, point2x, point1y, point2y):
+    distance = math.sqrt((point1x - point2x) ** 2 + (point1y - point2y) ** 2)
+    return distance
 
 def generate_location_ideal(mus,sigmas,weights):
     chosen_component1 = np.random.choice(peaks, p=weights)
@@ -32,11 +32,11 @@ def generate_initial_location(agent_loc):
 
 def approve_proposal(sigma,proposal,ideal,rx,ry):
     approval=0
-    if l1_distance(proposal[0],ideal[0],proposal[1],ideal[1])<=l1_distance(rx,ideal[0],ry,ideal[1]):
+    if l2_distance(proposal[0],ideal[0],proposal[1],ideal[1])<=l2_distance(rx,ideal[0],ry,ideal[1]):
         approval=1
-    elif  l1_distance(proposal[0],ideal[0],proposal[1],ideal[1])>=l1_distance(rx,ideal[0],ry,ideal[1]) and sigma>0:
+    elif  l2_distance(proposal[0],ideal[0],proposal[1],ideal[1])>=l2_distance(rx,ideal[0],ry,ideal[1]) and sigma>0:
         halfnorm_dist = halfnorm(scale=sigma)
-        pdf_value = halfnorm_dist.pdf(l1_distance(proposal[0],ideal[0],proposal[1],ideal[1]))
+        pdf_value = halfnorm_dist.pdf(l2_distance(proposal[0],ideal[0],proposal[1],ideal[1]))
         random_number = random.uniform(0, 1)
         if random_number<=pdf_value:
             approval=1
@@ -87,7 +87,7 @@ def coalition_prop(coalitions, num_agents, booli):
     x_sum /= num_agents
     y_sum /= num_agents
     centroid = (x_sum, y_sum)
-    distances = [l1_distance(coalition['proposal'][0], centroid[0], coalition['proposal'][1], centroid[1]) for coalition in coalitions]
+    distances = [l2_distance(coalition['proposal'][0], centroid[0], coalition['proposal'][1], centroid[1]) for coalition in coalitions]
     max_distance = max(distances)
     normalized_distances = [dist / max_distance for dist in distances]
     scores = [np.exp(booli * (dist)) for dist in normalized_distances]
@@ -172,7 +172,7 @@ def simulate_coalition_formation(times_av, q_dis, coalitions, key, num_agents,bo
             
     if itt < 5000:
         times_av[key].append(itt)
-        q_dis[key].append(calculate_avg_l1_distance(Halt(coalitions, num_agents)[1]))
+        q_dis[key].append(calculate_avg_l2_distance(Halt(coalitions, num_agents)[1]))
 
 def run_simulation(num_agents, sigma, times_av, q_dis,num,rx,ry,peakes):
     for t in [-1,0,1]:
@@ -187,12 +187,12 @@ def run_simulation(num_agents, sigma, times_av, q_dis,num,rx,ry,peakes):
                 coalitions = initialize_coalitions(agents,I)
                 simulate_coalition_formation(times_av, q_dis, coalitions, key, n,t,C,sigma,rx,ry)
 
-def calculate_avg_l1_distance(coalition):
+def calculate_avg_l2_distance(coalition):
     proposal = coalition['proposal']
     distances = []
     for agent in coalition['agents']:
         agent_location = agent['ideal_location']
-        distance = l1_distance(proposal[0], agent_location[0], proposal[1], agent_location[1])
+        distance = l2_distance(proposal[0], agent_location[0], proposal[1], agent_location[1])
         distances.append(distance)
     avg_distance = sum(distances) / len(distances)
     return avg_distance
