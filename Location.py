@@ -204,7 +204,7 @@ if __name__ == "__main__":
     q_dis = {}
     for peaks in [0,1,2,3,4]:
         for sigma in [0,10,20,30]:
-            for num_agents in range(10, 41, 10):
+            for num_agents in [10, 20, 30, 40, 50, 100, 250, 1000]:
                 for num in range(1,101):
                     rx= random.uniform(0, 200)
                     ry= random.uniform(0, 200)
